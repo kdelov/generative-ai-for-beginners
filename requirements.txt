@@ -9,3 +9,4 @@ tiktoken
 azure-ai-inference
 gradio
 requests
+alpaca-trade-api
