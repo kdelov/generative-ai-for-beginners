@@ -7,3 +7,5 @@ python-dotenv==1.1.1
 openai>=0.28.0
 tiktoken
 azure-ai-inference
+gradio
+requests
