@@ -10,3 +10,4 @@ azure-ai-inference
 gradio
 requests
 alpaca-trade-api
+Flask==3.1.2

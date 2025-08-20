@@ -1,10 +1,15 @@
 name: dev
 channels:
- - defaults
+  - defaults
 dependencies:
-- python=3.10.0
-- openai
-- python-dotenv
-- pip
-- pip:
-  - azure-ai-inference
+  - python=3.10.0
+  - pip
+  - openai
+  - python-dotenv   # loads .env in dev
+  - pip:
+      - flask==3.1.2
+     # - gunicorn==21.2.0        # for production serving
+     # - flask-sqlalchemy==3.1.1 # optional, if you need a database
+     # - flask-migrate==4.1.0    # optional, for db migrations
+     # - pytest==8.3.2           # optional, for testing
+      - azure-ai-inference
