@@ -1,77 +1,80 @@
 import os
-import json
-from openai import OpenAI
+import yfinance as yf
 import alpaca_trade_api as tradeapi
+from openai import OpenAI
+from watchlist_builder import build_watchlist
 
-# Load API keys
-ALPACA_API_KEY = os.getenv("ALPACA_API_KEY")
-ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
-ALPACA_BASE_URL = os.getenv("APCA_API_BASE_URL", "https://paper-api.alpaca.markets")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+api = tradeapi.REST(
+    os.getenv("ALPACA_API_KEY"),
+    os.getenv("ALPACA_SECRET_KEY"),
+    os.getenv("APCA_API_BASE_URL", "https://paper-api.alpaca.markets")
+)
 
-# Init clients
-api = tradeapi.REST(ALPACA_API_KEY, ALPACA_SECRET_KEY, ALPACA_BASE_URL)
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# === Portfolio state ===
 def get_portfolio_state():
-    account = api.get_account()
+    acct = api.get_account()
     positions = api.list_positions()
     return {
-        "portfolio_value": account.portfolio_value,
-        "positions": [
-            {"symbol": p.symbol, "qty": p.qty, "unrealized_plpc": p.unrealized_plpc}
-            for p in positions
-        ]
+        "portfolio_value": acct.portfolio_value,
+        "positions": [{"symbol": p.symbol, "qty": p.qty, "unrealized_plpc": p.unrealized_plpc} for p in positions]
     }
 
-# === Market snapshot ===
-def get_market_snapshot(symbol="AAPL"):
-    bars = api.get_bars(symbol, "1Day", limit=5)
-    return [bar._raw for bar in bars]  # convert to JSON-safe dicts
+def fetch_market_data(symbols):
+    data = {}
+    for s in symbols:
+        try:
+            hist = yf.Ticker(s).history(period="5d", interval="1d")
+            if not hist.empty:
+                last = hist.iloc[-1]
+                data[s] = {"close": last["Close"], "volume": last["Volume"]}
+        except Exception:
+            pass
+    return data
 
-# === Trading loop with GPT ===
-def run_trading_loop(symbol="PRGS"):
-    portfolio = get_portfolio_state()
-    market = get_market_snapshot(symbol)
-
-    prompt = f"""
-    You are an expert trader. 
-    Decide whether to BUY, SELL, or HOLD {symbol}.
-    Respond in JSON with fields: action, symbol, qty, reasoning.
-    Portfolio: {json.dumps(portfolio)}
-    Market: {json.dumps(market)}
+def ai_decision(portfolio, market_data, watchlist, max_positions=5, notional=1000):
+    instructions = """
+    You are an expert trader AI. 
+    Based only on the given portfolio and market data:
+    - Suggest actions: BUY, SELL, or HOLD
+    - Only use symbols from the watchlist
+    - Do not exceed the max_positions or per-trade notional
+    Return JSON in this format:
+    [{"action":"BUY/SELL/HOLD","symbol":"TSLA","qty":1,"reasoning":"..."}]
     """
-
     response = client.chat.completions.create(
-        model="gpt-4.1-mini",  # upgrade/downgrade if needed
+        model="gpt-4.1",
         messages=[
-            {"role": "system", "content": "You are a trading assistant."},
-            {"role": "user", "content": prompt}
+            {"role":"system","content":instructions},
+            {"role":"user","content":f"Portfolio:{portfolio}\nMarket:{market_data}\nWatchlist:{watchlist}"}
         ],
-        response_format={"type": "json_object"}
+        response_format={"type":"json_object"}
     )
+    return response.choices[0].message.parsed
 
-    decision_str = response.choices[0].message.content
-    try:
-        decision = json.loads(decision_str)
-    except json.JSONDecodeError:
-        decision = {"action": "hold", "symbol": symbol, "qty": 0, "reasoning": "Invalid JSON"}
+def execute_plan(plan, dry_run=True):
+    results = []
+    for step in plan:
+        try:
+            if dry_run or step["action"]=="HOLD":
+                results.append({"executed":False, **step})
+                continue
+            api.submit_order(
+                symbol=step["symbol"],
+                qty=step["qty"],
+                side="buy" if step["action"]=="BUY" else "sell",
+                type="market",
+                time_in_force="gtc"
+            )
+            results.append({"executed":True, **step})
+        except Exception as e:
+            results.append({"executed":False, "error":str(e), **step})
+    return results
 
-    action = decision.get("action", "").lower()
-    qty = int(decision.get("qty", 0))
-
-    # Execute trade if not HOLD
-    if action in ["buy", "sell"] and qty > 0:
-        api.submit_order(
-            symbol=symbol,
-            qty=qty,
-            side=action,
-            type="market",
-            time_in_force="gtc"
-        )
-        decision["executed"] = True
-    else:
-        decision["executed"] = False
-
-    return decision
+def autonomous_cycle(max_watchlist=20, max_positions=5, notional=1000, dry_run=True):
+    portfolio = get_portfolio_state()
+    watchlist = build_watchlist([p["symbol"] for p in portfolio["positions"]], max_size=max_watchlist)
+    market_data = fetch_market_data(watchlist)
+    plan = ai_decision(portfolio, market_data, watchlist, max_positions, notional)
+    results = execute_plan(plan, dry_run=dry_run)
+    return {"portfolio":portfolio,"watchlist":watchlist,"plan":results}

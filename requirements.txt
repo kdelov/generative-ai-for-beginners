@@ -22,3 +22,6 @@ azure-ai-inference
 requests
 alpaca-trade-api
 gradio
+beautifulsoup4
+lxml
+yfinance
