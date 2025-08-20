@@ -6,13 +6,20 @@
 
 # - Implement error handling to provide meaningful error messages to the user in case of errors. You can use the @app.errorhandler() decorator to handle exceptions and return an error response.
 
-from flask import Flask, request
+import os
+from flask import Flask, render_template, request
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, Length, Email
+from dotenv import load_dotenv
+
+# Load .env for local dev; in production, SECRET_KEY comes from environment
+load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret_key'
+
+# Use environment variable for secret key
+app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY", "fallback-secret")
 
 class HelloForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=3)])
@@ -26,11 +33,16 @@ def hello():
         name = form.name.data
         email = form.email.data
         return f'Hello, {name} ({email})!'
-    return form.render_template()
+    return render_template('form.html', form=form)
 
+# Error handlers
 @app.errorhandler(400)
 def bad_request(error):
     return 'Bad request', 400
 
+@app.errorhandler(500)
+def server_error(error):
+    return 'Something went wrong on our end.', 500
+
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
