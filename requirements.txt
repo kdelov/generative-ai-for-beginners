@@ -31,3 +31,4 @@ alpha_vantage
 finviz
 nltk
 spacy
+lxml[html_clean]
