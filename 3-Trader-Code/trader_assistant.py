@@ -18,10 +18,49 @@ def get_portfolio_state():
     }
 
 def generate_watchlist():
-    # Example: combine portfolio symbols and top trending symbols
+    """Generate a comprehensive watchlist of stocks to monitor."""
+    # Get current portfolio positions
     portfolio_symbols = [p['symbol'] for p in get_portfolio_state()['positions']]
-    trending_symbols = ['AAPL', 'TSLA', 'MSFT']  # placeholder, can be from news scraping
-    return list(set(portfolio_symbols + trending_symbols))
+    
+    # Major tech stocks
+    tech_stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSM', 'AVGO', 'ASML', 'AMD']
+    
+    # Financial sector
+    financial_stocks = ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'BLK', 'C', 'SCHW', 'AXP', 'V']
+    
+    # Healthcare sector
+    healthcare_stocks = ['JNJ', 'UNH', 'LLY', 'PFE', 'ABBV', 'MRK', 'TMO', 'ABT', 'DHR', 'BMY']
+    
+    # Industrial sector
+    industrial_stocks = ['CAT', 'BA', 'HON', 'UPS', 'RTX', 'UNP', 'DE', 'GE', 'MMM', 'LMT']
+    
+    # Consumer sector
+    consumer_stocks = ['PG', 'KO', 'PEP', 'COST', 'WMT', 'MCD', 'NKE', 'SBUX', 'HD', 'TGT']
+    
+    # Energy sector
+    energy_stocks = ['XOM', 'CVX', 'COP', 'SLB', 'EOG', 'PXD', 'PSX', 'VLO', 'MPC', 'OXY']
+    
+    # Combine all sectors and portfolio
+    all_symbols = list(set(
+        portfolio_symbols +
+        tech_stocks +
+        financial_stocks +
+        healthcare_stocks +
+        industrial_stocks +
+        consumer_stocks +
+        energy_stocks
+    ))
+    
+    # Optionally, you can limit the number of stocks to analyze if needed
+    max_stocks = 30  # Adjust this number based on your needs
+    if len(all_symbols) > max_stocks:
+        # Prioritize portfolio stocks and randomly select others
+        import random
+        non_portfolio = list(set(all_symbols) - set(portfolio_symbols))
+        selected_non_portfolio = random.sample(non_portfolio, min(max_stocks - len(portfolio_symbols), len(non_portfolio)))
+        return portfolio_symbols + selected_non_portfolio
+    
+    return all_symbols
 
 def decide_trade(symbol):
     price = get_price(symbol)
