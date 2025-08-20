@@ -5,7 +5,7 @@ from trader_assistant import run_trading_loop, get_portfolio_state
 def trade_interface():
     try:
         portfolio = get_portfolio_state()
-        decision = run_trading_loop(symbol="AAPL")
+        decision = run_trading_loop(symbol="PRGS")
         return f"📊 Portfolio:\n{portfolio}\n\n🤖 GPT Decision:\n{decision}"
     except Exception as e:
         return f"⚠️ Error: {str(e)}"

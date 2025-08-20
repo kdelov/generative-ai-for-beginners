@@ -31,7 +31,7 @@ def get_market_snapshot(symbol="AAPL"):
     return [bar._raw for bar in bars]  # convert to JSON-safe dicts
 
 # === Trading loop with GPT ===
-def run_trading_loop(symbol="AAPL"):
+def run_trading_loop(symbol="PRGS"):
     portfolio = get_portfolio_state()
     market = get_market_snapshot(symbol)
 
