@@ -1,13 +1,13 @@
 from alpaca_trade_api.rest import REST, TimeFrame
 from config import ALPACA_API_KEY, ALPACA_SECRET_KEY, OPENAI_API_KEY
 from market_data import get_price, get_top_news
-import openai
+from openai import OpenAI
 
 # Alpaca REST initialization (paper trading)
 BASE_URL = "https://paper-api.alpaca.markets"
 alpaca = REST(ALPACA_API_KEY, ALPACA_SECRET_KEY, base_url=BASE_URL)
 
-openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 def get_portfolio_state():
     account = alpaca.get_account()
@@ -33,12 +33,12 @@ def decide_trade(symbol):
     Decide if we should BUY, SELL, or HOLD.
     Give reasoning in JSON with fields: action, symbol, qty, reasoning, executed.
     """
-    response = openai.ChatCompletion.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    content = response.choices[0].message.content
     try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        content = response.choices[0].message.content
         import json
         return json.loads(content)
     except Exception:
