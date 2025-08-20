@@ -25,3 +25,9 @@ gradio
 beautifulsoup4
 lxml
 yfinance
+newspaper3k
+feedparser
+alpha_vantage
+finviz
+nltk
+spacy
