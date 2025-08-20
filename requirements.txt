@@ -1,13 +1,22 @@
+# Core scientific/ML stack
 ipywidgets==8.1.7
 matplotlib==3.9.4
 numpy==1.24.2
 pandas==1.5.3
 tqdm==4.67.1
+
+# Flask web app & forms
+Flask==3.1.2
+Flask-WTF==1.2.1
+gunicorn==21.2.0   # for production serving
+
+# Env vars / secrets
 python-dotenv==1.1.1
+
+# APIs and integrations
 openai>=0.28.0
 tiktoken
 azure-ai-inference
-gradio
 requests
 alpaca-trade-api
-Flask==3.1.2
+gradio
